@@ -1,0 +1,1 @@
+C:\Users\Lesha\Desktop\YandexTest\ConfigUprav1\x64\Debug\ConfigUprav1.exe --vfsPath "C:\Users\Lesha\Desktop\YandexTest\ConfigUprav1\OcScripts\3VFS\2test" --promt leha@hello --startScriptPath "C:\Users\Lesha\Desktop\testScript.txt"

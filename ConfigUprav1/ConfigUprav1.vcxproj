@@ -104,6 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -127,7 +128,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cmdCommand.cpp" />
     <ClCompile Include="ConfigUprav1.cpp" />
+    <ClCompile Include="FileSystemObj.cpp" />
+    <ClCompile Include="VirtualFileSystem.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cmdCommand.h" />
+    <ClInclude Include="FileSystemObj.h" />
+    <ClInclude Include="VirtualFileSystem.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
