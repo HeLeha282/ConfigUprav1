@@ -9,7 +9,7 @@ enum class TYPE_FILE_SYSTEM_OBJ {
 };
 
 class FileSystemObject {
-private:
+protected:
 	std::string path;
 	TYPE_FILE_SYSTEM_OBJ type;
 	std::vector<FileSystemObject*> childFileSystemObjects;
@@ -22,6 +22,9 @@ public:
 
 	TYPE_FILE_SYSTEM_OBJ getType();
 
+	std::vector<FileSystemObject*>& getChildFileSystemObjects();
+
+	FileSystemObject* findAndGetDir(std::string nameDir);
 	/*void setPath(std::string path);*/
 	//void setType(TYPE_FILE_SYSTEM_OBJ type);
 };

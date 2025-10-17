@@ -1,0 +1,543 @@
+public class CameraController : MonoBehaviour
+{
+    [SerializeField] private Transform player;
+    private Vector3 pos;
+
+    private void Update() {
+        pos = player.position;
+        pos.z = -10;
+
+        transform.position = Vector3.Lerp(transform.position, pos, Time.deltaTime);
+    }
+}
+
+
+public class Player : MonoBehaviour {
+    [SerializeField]private Image Bar;//полоска здоровья
+
+    [SerializeField] private int _maxHealth = 5;//здоровье максимальное
+    [SerializeField] private int _currentHealth;//текущее здоровье
+
+    
+    
+    private SpriteRenderer spriteRenderer;
+    private PlayerAnimations PlayerAnimations;
+
+    //для реализации передвижения
+    Rigidbody2D rb;
+    private float moveInput;
+    [SerializeField] float moveSpeed = 3f;
+    private bool jumpRequested = false; // Флаг для запроса прыжка 
+    [SerializeField] float jumpForce = 13f;
+    private bool isGrounded = false; // Проверка, на земле ли игрок 
+    private bool canCheckGrounded = true; // Флаг, блокирующий обновление isGrounded
+    [SerializeField] private LayerMask groundLayer; // Слой для определения земли
+    [SerializeField] private Transform groundCheck; // Точка проверки земли
+    [SerializeField] private float groundCheckRadius = 0.15f; // Радиус проверки земли
+    
+
+
+    private bool isRunning;//проверка бежит ли игрок
+    
+
+    private Knife Knife;
+    private AtackPos atackPos;
+
+
+
+    private void Awake() {
+        rb = GetComponent<Rigidbody2D>();
+        spriteRenderer = rb.GetComponentInChildren<SpriteRenderer>();
+        PlayerAnimations = GetComponentInChildren<PlayerAnimations>();
+        Knife = GetComponentInChildren<Knife>();
+        atackPos = GetComponent<AtackPos>();
+    }
+
+    private void Start() {
+        _currentHealth = _maxHealth;
+    }
+
+    void Update() {
+        //реализация передвижения
+        moveInput = Input.GetAxisRaw("Horizontal");
+        if (canCheckGrounded) {
+            // Проверяем, стоит ли персонаж на земле
+            isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+        }
+        
+        if (Input.GetButton("Jump") && isGrounded) {
+            jumpRequested = true;
+            isGrounded = false;
+            StartCoroutine(BlockGroundCheckForSeconds(0.5f));
+        }
+
+        //анимация
+        isRunning = moveInput != 0 ? true : false;//нужно для анимации
+        PlayerAnimations.isRunning = isRunning;
+        PlayerAnimations.isFlying = isFlying();
+
+
+        
+       
+
+        if (Input.GetMouseButtonDown(0)) {
+            Knife.isAttack = true;
+        }
+    }
+
+    void FixedUpdate() {
+        if (moveInput == 0) {
+            rb.velocity = new Vector2(0, rb.velocity.y);
+        }
+        else if (moveInput != 0) {
+            Move();
+        }
+        if (jumpRequested) {
+            Jump();
+            PlayerAnimations.goJump();//для анимации
+            jumpRequested = false;
+        }
+    }
+    private void Move() {//описал полностью
+        rb.velocity = new Vector2(moveInput * moveSpeed, rb.velocity.y) ;
+        if (moveInput < 0.0f) {
+            transform.rotation = Quaternion.Euler(0, 180, 0);
+        }
+        else {
+            transform.rotation = Quaternion.Euler(0, 0, 0);
+        }
+    }
+    private void Jump() {
+        rb.AddForce(transform.up * jumpForce, ForceMode2D.Impulse);
+    }
+    private IEnumerator BlockGroundCheckForSeconds(float delay) {
+        canCheckGrounded = false; // Отключаем проверку isGrounded
+        yield return new WaitForSeconds(delay); // Ждём 0.5 секунды
+        canCheckGrounded = true; // Включаем проверку снова
+    }
+
+
+    private bool isFlying() {
+        if (rb.velocity.y < 0) {
+            PlayerAnimations.endJump();
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+
+
+    public void TakeDamage(int damage) {
+        //isHurt = true;
+        //atackPos._enemyInRange = false;
+
+        _currentHealth -= damage;
+        Bar.fillAmount = _currentHealth * 1.0f / _maxHealth;
+        if (_currentHealth <= 0) {
+            //isHurt = false;
+            //isDie = true;
+            //animator.SetBool("isDie", isDie);
+            DestroyGameObject();// -                          
+        }
+        //animator.SetBool("isHurt", isHurt);//                    ,                          
+
+    }
+    public void DestroyGameObject() {
+        Destroy(gameObject);
+    }
+}
+
+
+public class PlayerAnimations : MonoBehaviour {
+    private Animator animator;
+    
+    public bool isRunning { private get; set; }
+    public bool isFlying { private get; set; }
+
+
+    void Awake() {
+        animator = GetComponent<Animator>();
+    }
+
+    // Update is called once per frame
+    void FixedUpdate() {
+        animator.SetBool("isRunning", isRunning);
+        animator.SetBool("isFlying", isFlying);
+    }
+
+    public void goJump()
+    {
+        animator.SetTrigger("Jump");
+    }
+
+    public void endJump() {
+        animator.ResetTrigger("Jump");
+    }
+
+}
+
+
+public class Knife : MonoBehaviour
+{
+    private Animator animator;
+    private float durationAnim = 0.182f;
+    private float timer = 0.182f;
+    [SerializeField] private SlashEffect slashEffect;
+    
+    
+    public bool isAttack { private get; set; }
+    private AtackPos atackPos;
+    
+    void Awake() {
+        animator = GetComponent<Animator>();
+        atackPos = FindObjectOfType<AtackPos>();
+        isAttack = false;
+    }
+
+    private void Update() {
+        timer += Time.deltaTime;
+        if (isAttack && timer > durationAnim) {
+            timer = 0.0f;
+            animator.SetBool("isAttack", isAttack);
+            slashEffect.AnimSplash(isAttack);
+            if (atackPos._enemyInRange) {
+                atackPos.GiveDamage();
+            }
+        }
+        isAttack = false;
+        if (timer >= durationAnim) {
+            animator.SetBool("isAttack", isAttack);
+            slashEffect.AnimSplash(isAttack);
+        }
+    }
+}
+
+public class AtackPos : MonoBehaviour
+{
+    public bool _enemyInRange { get; set; }
+
+
+    public Transform attackPos;
+    public LayerMask enemy;
+    public float attackRange = 0.5f;
+
+    private Collider2D[] enemies;
+
+    private void Awake() {
+        _enemyInRange = false;
+        attackPos = transform;
+    }
+
+    private void inRange() {
+        enemies = Physics2D.OverlapCircleAll(attackPos.position, attackRange, enemy);
+        if (enemies.Length > 0) {
+            //Debug.Log("bam");
+            _enemyInRange = true;
+        }
+        else {
+            _enemyInRange = false;// и без этого работает, но вроде бы с этим более правильно,
+                                  // на случай если вдрег я нажму атаку в тайминг, когда
+                                  //массив не успее обновиться, но я уже отвернусь отврага,
+                                  //чтобы ему вдруг не прошел урон
+        }
+    }
+
+    public void GiveDamage() {
+        for (int i = 0; i < enemies.Length; i++) {
+            enemies[i].GetComponent<Enemy>().TakeDamage(1);
+        }
+        _enemyInRange = false;
+    }
+
+    private void Update() {
+        inRange();
+    }
+
+    /*private void OnDrawGizmosSelected() {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(attackPos.position, attackRange);
+    }*/
+}
+
+
+public class SlashEffect : MonoBehaviour
+{
+    private Animator animator;
+
+    private void Awake() {
+        animator = GetComponent<Animator>();
+    }
+
+    public void AnimSplash(bool a) {
+        animator.SetBool("isAttack", a);
+    }
+
+}
+
+
+public class Enemy : MonoBehaviour {
+    private float currTimeAttack = 1f; // текущая длительность атаки
+    private float durationAttack = 0.7f;//задержка
+    private float maxTimeAttack = 1f; // максимальная длительность атаки перезарядкой + задержкой
+
+
+    public float speed;
+    public float positionOfPatrol;
+    public Transform point;
+    bool moveingRight;
+    public float stopingDistance;
+
+    bool chill = false;
+    bool angry = false;
+    bool goBack = false;
+    private Rigidbody2D rb;
+
+
+    [SerializeField] public HealthEnemy healthEnemy;
+
+    private Player player;
+
+    private Animator animator;
+    private bool isHurt;
+    private bool isDie;
+    private bool canAttack;
+    [SerializeField] private int _maxHealth = 5;
+    private int _currentHealth;
+    private AtackPos atackPos;
+    private AttackZoneForEnemy atackZone;
+
+    private Totem totem;
+    private void Awake() {
+        animator = GetComponent<Animator>();
+        atackPos = FindObjectOfType<AtackPos>();
+        atackZone = GetComponentInChildren<AttackZoneForEnemy>();
+        totem = GetComponentInChildren<Totem>();
+        player = FindObjectOfType<Player>();
+        rb = GetComponent<Rigidbody2D>();
+    }
+
+    private void Start() {
+        _currentHealth = _maxHealth;
+        isHurt = false;
+        isDie = false;
+        canAttack = false;
+        healthEnemy.SetHealth(_currentHealth, _maxHealth);
+    }
+
+    private void Update() {
+        if (Vector2.Distance(transform.position, point.position) < positionOfPatrol && angry == false) {
+            Debug.Log("Chill");
+            chill = true;
+        }
+        if (Vector2.Distance(transform.position, player.transform.position) < stopingDistance) {
+            Debug.Log("Angry");
+            angry = true;
+            chill = false;
+            goBack = false;
+        }
+        if (Vector2.Distance(transform.position, player.transform.position) > stopingDistance) {
+            Debug.Log("Gobacj");
+            goBack = true;
+            angry = false;
+        }
+
+        if (chill == true) {
+            Chill();
+        }
+        else if (angry == true) {
+            Angry();
+        }
+        else if (goBack == true) {
+            GoBack();
+        }
+        Attack();
+
+        if (canAttack != true) {// для поворота врага
+            if (moveingRight) {
+                transform.rotation = Quaternion.Euler(0, 180, 0);
+            }
+            else {
+                transform.rotation = Quaternion.Euler(0, 0, 0);
+            }
+
+        }
+
+    }
+
+
+    void Chill() {
+        if (transform.position.x > point.position.x + positionOfPatrol) {
+            moveingRight = false;
+        }
+        else if (transform.position.x < point.position.x - positionOfPatrol) {
+            moveingRight = true;
+        }
+
+        if (moveingRight) {
+            rb.velocity = new Vector2(1, rb.velocity.y) * speed;
+        }
+        else {
+            rb.velocity = new Vector2(-1, rb.velocity.y) * speed;
+        }
+    }
+
+    void Angry() {
+        if (canAttack != true) {
+            if (transform.position.x > player.transform.position.x) {
+                moveingRight = false;
+            }
+            else if (transform.position.x < player.transform.position.x) {
+                moveingRight = true;
+            }
+
+            if (moveingRight) {
+                rb.velocity = new Vector2(2, rb.velocity.y) * speed;
+            }
+            else {
+                rb.velocity = new Vector2(-2, rb.velocity.y) * speed;
+            }
+            //transform.position = Vector2.MoveTowards(transform.position, player.transform.position, speed * Time.deltaTime);
+        }
+        else {
+            rb.velocity = new Vector2(0, 0) * speed;
+        }
+    }
+
+
+    void GoBack() {
+        if (transform.position.x > point.position.x) {
+            moveingRight = false;
+        }
+        else if (transform.position.x < point.position.x - positionOfPatrol) {
+            moveingRight = true;
+        }
+        if (moveingRight) {
+            rb.velocity = new Vector2(1, rb.velocity.y) * speed;
+        }
+        else {
+            rb.velocity = new Vector2(-1, rb.velocity.y) * speed;
+
+        }
+    }
+
+
+
+
+    private void Attack() {
+        if (currTimeAttack >= maxTimeAttack + durationAttack) {
+            if (atackZone._PlayerInZone) {
+                currTimeAttack = 0.0f;
+                canAttack = true;
+                animator.SetBool("canAttack", true);
+                //totem.CallAnim();
+            }
+        }
+        if (currTimeAttack >= maxTimeAttack) {
+            canAttack = false;
+            animator.SetBool("canAttack", canAttack);
+        }
+        currTimeAttack += Time.deltaTime;
+    }
+
+    private void GiveDamage() {
+        if (atackZone._PlayerInZone == true) {
+            player.TakeDamage(1);
+        }
+    }
+
+    //private void GoAttack() {
+    //    currTimeAttack = 0.0f;
+    //    Debug.Log("rwr");
+    //    canAttack = true;
+    //    animator.SetBool("canAttack", true);
+    //    timer();
+    //    //canAttack = false;
+    //    //animator.SetBool("canAttack", canAttack);
+    //}
+
+    //private void timer() {
+    //    while (timeAttackCurr < Time.deltaTime) {
+    //        timeAttackCurr += Time.deltaTime;
+    //    }
+    //}
+
+    public void TakeDamage(int damage) {
+        if (canAttack == false) {
+            isHurt = true;
+            atackPos._enemyInRange = false;
+            _currentHealth -= damage;
+            healthEnemy.SetHealth(_currentHealth, _maxHealth);
+        }
+        if (_currentHealth <= 0) {
+            isHurt = false;
+            isDie = true;
+            animator.SetBool("isDie", isDie);
+            //DestroyGameObject(); - вызывается через анимацию
+        }
+        animator.SetBool("isHurt", isHurt);// если чел не умирает, то только тогда даем урон
+    }
+
+    public void DestroyGameObject() {
+        Destroy(gameObject);
+    }
+
+    public void HurtToIdle() {
+        isHurt = false;
+        animator.SetBool("isHurt", isHurt);
+    }
+}
+
+
+public class HealthEnemy : MonoBehaviour {
+    public Slider slider;
+    public Vector3 offset;
+
+    public void SetHealth(int health, int maxHelth) {
+        slider.gameObject.SetActive(health < maxHelth);
+        slider.value = health;
+        slider.maxValue = maxHelth;
+    }
+    public void Update() {
+        slider.transform.position = Camera.main.WorldToScreenPoint(transform.parent.position + offset);
+    }
+}
+
+
+
+public class AttackZoneForEnemy : MonoBehaviour
+{
+    public bool _PlayerInZone { get; set; }
+
+
+    public Transform attackZone;
+    public LayerMask Player;
+    public float attackRange = 0.5f;
+    private Collider2D player;
+
+    private void Awake() {
+        attackZone = transform;
+    }
+
+    private void Update() {
+        player = Physics2D.OverlapCircle(attackZone.position, attackRange, Player);
+        if (player != null) {
+            _PlayerInZone = true;
+        }
+        else {
+            _PlayerInZone = false;
+        }
+    }
+
+
+
+    private void OnDrawGizmosSelected() {
+    Gizmos.color = Color.yellow;
+    Gizmos.DrawWireSphere(attackZone.position, attackRange);
+    }
+}
+
+
+
+

@@ -62,6 +62,11 @@ TYPE_FILE_SYSTEM_OBJ FileSystemObject::getType()
 	return this->type;
 }
 
+std::vector<FileSystemObject*>& FileSystemObject::getChildFileSystemObjects()
+{
+	return childFileSystemObjects;
+}
+
 //void FileSystemObject::setPath(std::string path)
 //{
 //	this->path = path;
@@ -72,3 +77,19 @@ TYPE_FILE_SYSTEM_OBJ FileSystemObject::getType()
 //	this->type = type;
 
 //}
+
+ 
+FileSystemObject* FileSystemObject::findAndGetDir(std::string nameDir)
+{
+	if (path == nameDir) {
+		return this;
+	}
+	for (auto el : childFileSystemObjects) {
+		if (el->type == TYPE_FILE_SYSTEM_OBJ::DIR) {
+			//std::cout << el->path<<" - ";
+			if(el->findAndGetDir(nameDir) != nullptr)
+				return el->findAndGetDir(nameDir);
+		}
+	}
+	return nullptr;
+}

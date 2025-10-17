@@ -10,7 +10,8 @@
 #include "FileSystemObj.h"
 namespace fs = std::filesystem;
 
-FileSystemObject* fileSystemRootObjectPtr;
+RootFileSystemObj* fileSystemRootObjectPtr;
+CmdCommand* cmdCommand;
 
 void getAndProcessInputLineFromCmd();
 void getAndProcessInputLineFromScript(std::ifstream& inf);
@@ -20,7 +21,7 @@ std::vector<std::string> vectorArg(std::string input);
 
 //2-config: promt - приглашение к вводу. vfs - путь к физ расположению vfs
 std::string vfsPath;
-std::string promt;
+std::string promt = "vfs";
 std::string startScriptPath;
 std::string vfsName = "vfs";
 std::string curDir = "~";
@@ -29,11 +30,11 @@ std::string curDir = "~";
 //typedef void(*FunctionPtr)();
 using FunctionPtr = void(*)(std::vector<std::string>);
 
-std::unordered_map<std::string, FunctionPtr> mapCommand = {
-    {"cd", &cd},
-    {"ls", &ls},
-    {"exit", &exit}
-};
+//std::unordered_map<std::string, FunctionPtr> mapCommand = {
+//    {"cd", &cmdCommand::cd},
+//    {"ls", &cmdCommand::ls},
+//    {"exit", &cmdCommand::exit}
+//};
 
 
 int main(int argc, char* argv[])
@@ -64,7 +65,7 @@ int main(int argc, char* argv[])
         << "promt = " << promt << '\n'
         << "startScriptPath = " << startScriptPath << "\n\n";
     
-    fileSystemRootObjectPtr = new FileSystemObject(nullptr, vfsPath);
+    fileSystemRootObjectPtr = new RootFileSystemObj(nullptr, vfsPath);
     if (!fs::exists(vfsPath)) {
         std::cerr << "Пути переданного для подключения файловой системы не существует" << std::endl;
     }
@@ -74,12 +75,14 @@ int main(int argc, char* argv[])
         }
     }
     fileSystemRootObjectPtr->printTree();
-
+    cmdCommand = new CmdCommand(fileSystemRootObjectPtr);
 
     if (!startScriptPath.empty())
         processScriptFile(startScriptPath);
     
-
+    std::cout << "путь до базовой дир ";
+    cmdCommand->getRootPath();
+        std::cout<< std::endl;
     //std::cout << "ПУТЬ К ЛОЛЧИКУ " << fileSystemRootObjectPtr->getPath()<<std::endl;
     //std::cout << "ТИП ЛОЛЧИКА " ;
     //switch (fileSystemRootObjectPtr->getType()) 
@@ -116,10 +119,8 @@ int main(int argc, char* argv[])
 }
 
 
-
-
 void getAndProcessInputLineFromCmd() {
-    std::cout << promt << ':' << curDir << "$ ";
+    std::cout << promt << ':' << cmdCommand->getCurPathVfs() << "$ ";
     std::string input;
     getline(std::cin, input);
 
@@ -129,13 +130,7 @@ void getAndProcessInputLineFromCmd() {
         std::cout << "[" << element << "] ";
     }*/
     if (vecArg.size() != 0) {
-
-        if (mapCommand.find(vecArg[0]) != mapCommand.end()) {
-            mapCommand[vecArg[0]](vecArg);
-        }
-        else {
-            std::cout << "Unsupported command: " << vecArg[0] << std::endl;
-        }
+        cmdCommand->choiceCommand(vecArg);
     }
 }
 
@@ -146,16 +141,10 @@ void getAndProcessInputLineFromScript(std::ifstream& inf) {
         return;
     }
 
-    std::cout << promt << ':' << curDir << "$ " << input << std::endl;
+    std::cout << promt << ':' << cmdCommand->getCurPathVfs() << "$ " << input << std::endl;
     std::vector<std::string> vecArg = vectorArg(input);
     if (vecArg.size() != 0) {
-
-        if (mapCommand.find(vecArg[0]) != mapCommand.end()) {
-            mapCommand[vecArg[0]](vecArg);
-        }
-        else {
-            std::cout << "Unsupported command: " << vecArg[0] << std::endl;
-        }
+        cmdCommand->choiceCommand(vecArg);
     }
 }
 

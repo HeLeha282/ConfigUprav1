@@ -131,11 +131,13 @@
     <ClCompile Include="cmdCommand.cpp" />
     <ClCompile Include="ConfigUprav1.cpp" />
     <ClCompile Include="FileSystemObj.cpp" />
+    <ClCompile Include="RootFileSystemObj.cpp" />
     <ClCompile Include="VirtualFileSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdCommand.h" />
     <ClInclude Include="FileSystemObj.h" />
+    <ClInclude Include="RootFileSystemObj.h" />
     <ClInclude Include="VirtualFileSystem.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

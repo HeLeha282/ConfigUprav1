@@ -30,6 +30,9 @@
     <ClCompile Include="FileSystemObj.cpp">
       <Filter>Исходные файлы\VirtualFileSystem</Filter>
     </ClCompile>
+    <ClCompile Include="RootFileSystemObj.cpp">
+      <Filter>Исходные файлы\VirtualFileSystem</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdCommand.h">
@@ -39,6 +42,9 @@
       <Filter>Исходные файлы\VirtualFileSystem</Filter>
     </ClInclude>
     <ClInclude Include="FileSystemObj.h">
+      <Filter>Исходные файлы\VirtualFileSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="RootFileSystemObj.h">
       <Filter>Исходные файлы\VirtualFileSystem</Filter>
     </ClInclude>
   </ItemGroup>
